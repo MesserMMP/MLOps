@@ -2,9 +2,13 @@ from uuid import uuid4
 from typing import List
 
 import numpy as np
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
 
-from app.logging_config import setup_logging
+from app.datasets.registry import get_datasets_as_dicts
+from app.datasets.service import save_uploaded_dataset
+from app.schemas.api import DatasetUploadResponse
+
+from app.core.logging_config import setup_logging
 from app.models.registry import MODEL_CLASSES
 from app.models.storage import TRAINED_MODELS
 from app.schemas.api import (
@@ -18,6 +22,7 @@ from app.schemas.api import (
     DatasetListResponse,
     DatasetInfo,
 )
+
 
 logger = setup_logging()
 router = APIRouter()
@@ -115,8 +120,26 @@ def delete_model(model_id: str):
 
 @router.get("/datasets", response_model=DatasetListResponse)
 def list_datasets():
-    logger.info("Listing datasets (stub)")
+    logger.info("Listing datasets")
+    meta = get_datasets_as_dicts()
     datasets = [
-        DatasetInfo(name="demo_dataset", description="Stub dataset"),
+        DatasetInfo(name=m["name"], description=m["description"])
+        for m in meta
     ]
     return DatasetListResponse(datasets=datasets)
+
+
+@router.post("/datasets/upload", response_model=DatasetUploadResponse)
+def upload_dataset(file: UploadFile = File(...)):
+    """
+    Загрузка датасета (csv/json) на сервер.
+    Пока просто кладём файл в data/ и регистрируем в реестре.
+    Позже сюда же добавится DVC add/push.
+    """
+    logger.info("Uploading dataset: %s", file.filename)
+    dataset_name = save_uploaded_dataset(file)
+    # Найдём путь из реестра
+    from app.datasets.registry import _DATASETS  # можно заменить на отдельную функцию
+
+    meta = _DATASETS[dataset_name]
+    return DatasetUploadResponse(name=meta.name, path=meta.path)

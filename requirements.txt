@@ -13,3 +13,4 @@ python-dotenv==1.0.1
 black==24.10.0
 ruff==0.7.3
 mypy==1.13.0
+python-multipart==0.0.12

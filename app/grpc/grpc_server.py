@@ -4,7 +4,7 @@ from concurrent import futures
 import grpc
 import numpy as np
 
-from app.logging_config import setup_logging
+from app.core.logging_config import setup_logging
 from app.models.registry import MODEL_CLASSES
 from app.models.storage import TRAINED_MODELS
 from app.schemas.api import TrainRequest

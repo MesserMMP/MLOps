@@ -1,5 +1,6 @@
 from typing import Dict, Any, List
 from pydantic import BaseModel, Field
+from fastapi import UploadFile
 
 
 class TrainRequest(BaseModel):
@@ -46,3 +47,7 @@ class DatasetInfo(BaseModel):
 
 class DatasetListResponse(BaseModel):
     datasets: List[DatasetInfo]
+
+class DatasetUploadResponse(BaseModel):
+    name: str
+    path: str
