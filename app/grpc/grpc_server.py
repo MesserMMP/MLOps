@@ -7,8 +7,9 @@ import numpy as np
 from app.core.logging_config import setup_logging
 from app.models.registry import MODEL_CLASSES
 from app.models.storage import TRAINED_MODELS
-from app.schemas.api import TrainRequest
-from app.grpc import ml_service_pb2_grpc as pb2_grpc, ml_service_pb2 as pb2
+from app.schemas.api import TrainRequest, RetrainRequest
+from app.grpc import ml_service_pb2 as pb2
+from app.grpc import ml_service_pb2_grpc as pb2_grpc
 
 logger = setup_logging()
 
@@ -42,17 +43,40 @@ class MLServiceServicer(pb2_grpc.MLServiceServicer):
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
             return pb2.TrainModelResponse()
 
-        # Переиспользуем TrainRequest логику
-        train_req = TrainRequest(
+        from app.api.routes import train_model as rest_train_model
+
+        rest_req = TrainRequest(
             dataset_name=request.dataset_name,
             model_class=request.model_class,
             hyperparams=hyperparams,
         )
+        resp = rest_train_model(rest_req)
 
-        # Сюда можно вынести общую функцию train_model_core(...)
-        from app.api.routes import train_model as rest_train_model
+        return pb2.TrainModelResponse(
+            model_id=resp.model_id,
+            model_class=resp.model_class,
+        )
 
-        resp = rest_train_model(train_req)
+    def RetrainModel(self, request, context):
+        logger.info("gRPC RetrainModel called: %s", request.model_id)
+
+        if not request.model_id:
+            context.set_details("model_id is required")
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            return pb2.TrainModelResponse()
+
+        try:
+            hyperparams = json.loads(request.hyperparams_json) if request.hyperparams_json else {}
+        except json.JSONDecodeError:
+            context.set_details("Invalid hyperparams_json")
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            return pb2.TrainModelResponse()
+
+        from app.api.routes import retrain_model as rest_retrain_model
+
+        rest_req = RetrainRequest(model_id=request.model_id, hyperparams=hyperparams)
+        resp = rest_retrain_model(rest_req)
+
         return pb2.TrainModelResponse(
             model_id=resp.model_id,
             model_class=resp.model_class,

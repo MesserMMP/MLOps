@@ -1,7 +1,8 @@
 import json
 import grpc
 
-from app.grpc import ml_service_pb2_grpc as pb2_grpc, ml_service_pb2 as pb2
+from app.grpc import ml_service_pb2 as pb2
+from app.grpc import ml_service_pb2_grpc as pb2_grpc
 
 
 def main():
@@ -24,7 +25,7 @@ def main():
     print("Trained model:", train_resp.model_id, train_resp.model_class)
 
     # 3. Инференс
-    data = [0.1, 0.2, 0.3, 0.4]  # один объект, 4 фичи
+    data = [0.1, 0.2, 0.3, 0.4]
     pred_req = pb2.PredictRequest(
         model_id=train_resp.model_id,
         data=data,
@@ -32,6 +33,14 @@ def main():
     )
     pred_resp = stub.Predict(pred_req)
     print("Predictions:", pred_resp.predictions)
+
+    # 4. Переобучение
+    retrain_req = pb2.RetrainModelRequest(
+        model_id=train_resp.model_id,
+        hyperparams_json=json.dumps({"max_iter": 300}),
+    )
+    retrain_resp = stub.RetrainModel(retrain_req)
+    print("Retrained model:", retrain_resp.model_id, retrain_resp.model_class)
 
 
 if __name__ == "__main__":

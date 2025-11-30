@@ -1,14 +1,27 @@
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 from pydantic import BaseModel, Field
-from fastapi import UploadFile
 
 
 class TrainRequest(BaseModel):
-    dataset_name: str = Field(..., description="Имя датасета (пока заглушка)")
-    model_class: str = Field(..., description="Класс модели: logreg или rf")
+    dataset_name: str = Field(
+        ...,
+        description="Имя датасета (совпадает с name из реестра /datasets)",
+    )
+    model_class: str = Field(
+        ...,
+        description="Класс модели: logreg или rf",
+    )
     hyperparams: Dict[str, Any] = Field(
         default_factory=dict,
         description="Гиперпараметры конкретной модели",
+    )
+    target_column: str = Field(
+        ...,
+        description="Имя целевой колонки в CSV",
+    )
+    feature_columns: List[str] | None = Field(
+        default=None,
+        description="Явный список фич; если None — все числовые колонки, кроме target",
     )
 
 
@@ -17,13 +30,21 @@ class TrainResponse(BaseModel):
     model_class: str
 
 
+class RetrainRequest(BaseModel):
+    model_id: str = Field(..., description="ID существующей модели")
+    hyperparams: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Новые гиперпараметры; переопределяют старые",
+    )
+
+
 class PredictRequest(BaseModel):
     model_id: str
     data: List[List[float]]
 
 
 class PredictResponse(BaseModel):
-    predictions: List[float]
+    predictions: List[Any]
 
 
 class StatusResponse(BaseModel):

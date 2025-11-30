@@ -44,6 +44,11 @@ class MLServiceStub(object):
                 request_serializer=ml__service__pb2.TrainModelRequest.SerializeToString,
                 response_deserializer=ml__service__pb2.TrainModelResponse.FromString,
                 _registered_method=True)
+        self.RetrainModel = channel.unary_unary(
+                '/mlservice.MLService/RetrainModel',
+                request_serializer=ml__service__pb2.RetrainModelRequest.SerializeToString,
+                response_deserializer=ml__service__pb2.TrainModelResponse.FromString,
+                _registered_method=True)
         self.Predict = channel.unary_unary(
                 '/mlservice.MLService/Predict',
                 request_serializer=ml__service__pb2.PredictRequest.SerializeToString,
@@ -66,6 +71,12 @@ class MLServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def RetrainModel(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def Predict(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -83,6 +94,11 @@ def add_MLServiceServicer_to_server(servicer, server):
             'TrainModel': grpc.unary_unary_rpc_method_handler(
                     servicer.TrainModel,
                     request_deserializer=ml__service__pb2.TrainModelRequest.FromString,
+                    response_serializer=ml__service__pb2.TrainModelResponse.SerializeToString,
+            ),
+            'RetrainModel': grpc.unary_unary_rpc_method_handler(
+                    servicer.RetrainModel,
+                    request_deserializer=ml__service__pb2.RetrainModelRequest.FromString,
                     response_serializer=ml__service__pb2.TrainModelResponse.SerializeToString,
             ),
             'Predict': grpc.unary_unary_rpc_method_handler(
@@ -144,6 +160,33 @@ class MLService(object):
             target,
             '/mlservice.MLService/TrainModel',
             ml__service__pb2.TrainModelRequest.SerializeToString,
+            ml__service__pb2.TrainModelResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RetrainModel(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mlservice.MLService/RetrainModel',
+            ml__service__pb2.RetrainModelRequest.SerializeToString,
             ml__service__pb2.TrainModelResponse.FromString,
             options,
             channel_credentials,

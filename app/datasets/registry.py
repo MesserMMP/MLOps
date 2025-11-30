@@ -25,3 +25,7 @@ def list_datasets() -> List[DatasetMeta]:
 
 def get_datasets_as_dicts() -> List[dict]:
     return [asdict(m) for m in _DATASETS.values()]
+
+
+def get_dataset(name: str) -> DatasetMeta | None:
+    return _DATASETS.get(name)

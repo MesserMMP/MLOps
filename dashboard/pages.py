@@ -10,12 +10,13 @@ from api_client import (
     fetch_models,
     upload_dataset,
     train_model,
+    retrain_model,
     predict,
 )
 from layout import page_header
 
 
-# --- Status ---
+# ---------- Status ----------
 
 def page_status():
     page_header("Service status", "Check backend health.")
@@ -26,7 +27,7 @@ def page_status():
         st.error(f"Service is not available: {e}")
 
 
-# --- Datasets ---
+# ---------- Datasets ----------
 
 def page_datasets():
     page_header("Datasets", "Manage uploaded datasets used for training.")
@@ -64,7 +65,7 @@ def page_datasets():
                     st.error(f"Upload failed: {e}")
 
 
-# --- Training ---
+# ---------- Training ----------
 
 def _get_default_params(
     classes: list[Dict[str, Any]], selected_class: str
@@ -75,9 +76,14 @@ def _get_default_params(
     return {}
 
 
-def page_training():
-    page_header("Training", "Configure and train models.")
+def _model_labels(models: List[Dict[str, Any]]) -> List[str]:
+    return [f"{m['model_id']} ({m.get('model_class', 'unknown')})" for m in models]
 
+
+def page_training():
+    page_header("Training", "Configure, train and retrain models on CSV datasets.")
+
+    # модельные классы
     try:
         classes = fetch_model_classes()
     except Exception as e:
@@ -88,9 +94,7 @@ def page_training():
         st.info("No model classes available.")
         return
 
-    class_names = [c["name"] for c in classes]
-    selected_class = st.selectbox("Model class", class_names)
-
+    # датасеты
     try:
         datasets = fetch_datasets()
     except Exception as e:
@@ -101,8 +105,29 @@ def page_training():
         st.info("Upload at least one dataset first on the Datasets page.")
         return
 
+    class_names = [c["name"] for c in classes]
     dataset_names = [d["name"] for d in datasets]
-    selected_dataset = st.selectbox("Dataset", dataset_names)
+
+    col_top_left, col_top_right = st.columns(2)
+    with col_top_left:
+        selected_class = st.selectbox("Model class", class_names)
+    with col_top_right:
+        selected_dataset = st.selectbox("Dataset", dataset_names)
+
+    st.subheader("Target and features")
+    col_target, col_features = st.columns(2)
+    with col_target:
+        target_column = st.text_input("Target column name", value="diagnosis")
+    with col_features:
+        features_raw = st.text_input(
+            "Feature columns (comma-separated, empty = auto detect numeric)",
+            value="",
+        )
+        feature_columns: List[str] | None
+        if features_raw.strip():
+            feature_columns = [c.strip() for c in features_raw.split(",") if c.strip()]
+        else:
+            feature_columns = None
 
     default_params = _get_default_params(classes, selected_class)
     st.subheader("Hyperparameters")
@@ -116,36 +141,82 @@ def page_training():
         label_visibility="collapsed",
     )
 
-    col_left, col_right = st.columns(2)
-    with col_left:
-        st.markdown("**Selected model**")
-        st.write(f"`{selected_class}`")
-    with col_right:
-        st.markdown("**Selected dataset**")
-        st.write(f"`{selected_dataset}`")
+    # выбор модели для retrain
+    st.markdown("#### Optional: retrain existing model")
+    try:
+        models = fetch_models()
+    except Exception as e:
+        st.error(f"Failed to fetch models: {e}")
+        models = []
 
-    if st.button("Train model", use_container_width=True):
-        try:
-            hyperparams = json.loads(hyperparams_str) if hyperparams_str.strip() else {}
-        except json.JSONDecodeError as e:
-            st.error(f"Invalid JSON: {e}")
-            return
+    model_id_for_retrain: str | None = None
+    if models:
+        labels = _model_labels(models)
+        selected_label = st.selectbox(
+            "Existing model to retrain (optional)",
+            ["— none —"] + labels,
+        )
+        if selected_label != "— none —":
+            idx = labels.index(selected_label)
+            model_id_for_retrain = models[idx]["model_id"]
+    else:
+        st.caption("No trained models yet for retraining.")
 
-        with st.spinner("Training..."):
+    col_buttons_left, col_buttons_right = st.columns(2)
+
+    # Train new
+    with col_buttons_left:
+        if st.button("Train new model", use_container_width=True):
+            if not target_column.strip():
+                st.error("Target column name is required.")
+                return
+
             try:
-                resp = train_model(selected_dataset, selected_class, hyperparams)
-                st.success(
-                    f"Trained model `{resp['model_id']}` ({resp['model_class']})"
-                )
-            except Exception as e:
-                st.error(f"Training failed: {e}")
+                hyperparams = json.loads(hyperparams_str) if hyperparams_str.strip() else {}
+            except json.JSONDecodeError as e:
+                st.error(f"Invalid JSON: {e}")
+                return
+
+            with st.spinner("Training..."):
+                try:
+                    resp = train_model(
+                        dataset_name=selected_dataset,
+                        model_class=selected_class,
+                        hyperparams=hyperparams,
+                        target_column=target_column.strip(),
+                        feature_columns=feature_columns,
+                    )
+                    st.success(
+                        f"Trained model `{resp['model_id']}` ({resp['model_class']})"
+                    )
+                except Exception as e:
+                    st.error(f"Training failed: {e}")
+
+    # Retrain
+    with col_buttons_right:
+        if st.button("Retrain selected model", use_container_width=True):
+            if not model_id_for_retrain:
+                st.error("Select an existing model to retrain.")
+                return
+
+            try:
+                hyperparams = json.loads(hyperparams_str) if hyperparams_str.strip() else {}
+            except json.JSONDecodeError as e:
+                st.error(f"Invalid JSON: {e}")
+                return
+
+            with st.spinner("Retraining..."):
+                try:
+                    resp = retrain_model(model_id_for_retrain, hyperparams)
+                    st.success(
+                        f"Retrained model `{resp['model_id']}` "
+                        f"({resp['model_class']}) from `{model_id_for_retrain}`"
+                    )
+                except Exception as e:
+                    st.error(f"Retraining failed: {e}")
 
 
-# --- Inference ---
-
-def _model_labels(models: List[Dict[str, Any]]) -> List[str]:
-    return [f"{m['model_id']} ({m.get('model_class', 'unknown')})" for m in models]
-
+# ---------- Inference ----------
 
 def page_inference():
     page_header("Inference", "Run predictions using trained models.")
