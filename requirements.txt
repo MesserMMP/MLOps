@@ -18,3 +18,5 @@ python-multipart==0.0.12
 # dashboard + http client
 streamlit==1.51.0
 requests==2.32.3
+
+dvc[s3]==3.58.0

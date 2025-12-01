@@ -206,4 +206,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
-data/
+# игнорировать содержимое data, но не .dvc-файлы
+data/*
+!data/*.dvc

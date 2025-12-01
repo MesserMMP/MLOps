@@ -6,22 +6,23 @@ import pandas as pd
 from fastapi import HTTPException, UploadFile
 
 from app.core.logging_config import setup_logging
-from app.datasets.registry import register_dataset, get_dataset
+from app.datasets.registry import register_dataset, get_dataset, get_datasets_as_dicts
+from app.datasets.dvc_config import get_dvc_repo, DATA_DIR, ensure_data_dir
 
 logger = setup_logging()
 
-DATA_DIR = Path("data")
-DATA_DIR.mkdir(exist_ok=True)
+ensure_data_dir()
 
 
 def save_uploaded_dataset(
-        file: UploadFile,
-        dataset_name: str | None = None,
-        format_hint: Literal["csv", "json", "auto"] = "auto",
+    file: UploadFile,
+    dataset_name: str | None = None,
+    format_hint: Literal["csv", "json", "auto"] = "auto",
 ) -> str:
     """
-    Сохраняет загруженный файл (csv/json) на диск и регистрирует его в реестре.
-    Возвращает имя датасета.
+    Сохраняет загруженный файл (csv/json) на диск, регистрирует в локальном
+    реестре и добавляет в DVC (dvc add + dvc push).
+    Возвращает имя датасета (имя файла).
     """
     if dataset_name is None:
         dataset_name = file.filename
@@ -42,11 +43,24 @@ def save_uploaded_dataset(
         else:
             format_hint = "csv"
 
+    # Локальный реестр (для быстрого доступа в рантайме)
     register_dataset(
         name=safe_name,
         path=str(target_path),
-        description=f"uploaded {format_hint} file",
+        description=f"uploaded {format_hint} file (DVC-tracked)",
     )
+
+    # DVC add + push
+    try:
+        repo = get_dvc_repo()
+        rel_path = os.path.relpath(target_path, repo.root_dir)
+        logger.info("DVC add %s", rel_path)
+        repo.add(rel_path)
+        logger.info("DVC push")
+        repo.push()
+    except Exception as e:
+        logger.exception("Failed to run DVC for dataset %s: %s", safe_name, e)
+        # не валим запрос, но помечаем в логах
 
     return safe_name
 
@@ -75,9 +89,7 @@ def load_xy_from_csv(
         logger.error("Target column %s not in dataset columns", target_column)
         raise HTTPException(status_code=400, detail="target_column not in dataset")
 
-    # кандидаты на «индексные» столбцы, которые не надо включать в фичи
-    index_like_cols = {"id", "ID", "Id", "index", "Index"}
-    # частый случай из pandas: Unnamed: 0, Unnamed: 0.1, ...
+    index_like_cols = {"id", "ID", "index", "Index"}
     index_like_cols |= {c for c in df.columns if c.lower().startswith("unnamed:")}
 
     if feature_columns is None:
