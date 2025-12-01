@@ -138,6 +138,7 @@ celerybeat.pid
 .env
 .envrc
 .venv
+.idea
 env/
 venv/
 ENV/
@@ -205,3 +206,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+# игнорировать содержимое data, но не .dvc-файлы
+data/*
+!data/*.dvc

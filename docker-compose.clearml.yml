@@ -1,0 +1,111 @@
+services:
+  apiserver:
+    image: clearml/server:latest
+    container_name: clearml-apiserver
+    restart: unless-stopped
+    command: apiserver
+    environment:
+      CLEARML_ELASTIC_SERVICE_HOST: elasticsearch
+      CLEARML_ELASTIC_SERVICE_PORT: 9200
+      CLEARML_MONGODB_SERVICE_HOST: mongo
+      CLEARML_MONGODB_SERVICE_PORT: 27017
+      CLEARML_REDIS_SERVICE_HOST: redis
+      CLEARML_REDIS_SERVICE_PORT: 6379
+      CLEARML_SERVER_DEPLOYMENT_TYPE: linux
+      CLEARML__apiserver__pre_populate__enabled: "true"
+      CLEARML__services__async_urls_delete__enabled: "true"
+    ports:
+      - "8008:8008"
+    depends_on:
+      - redis
+      - mongo
+      - elasticsearch
+      - fileserver
+    networks:
+      - backend
+      - frontend
+    volumes:
+      - clearml-logs:/var/log/clearml
+
+  webserver:
+    image: clearml/server:latest
+    container_name: clearml-webserver
+    restart: unless-stopped
+    command: webserver
+    ports:
+      - "8080:80"
+    depends_on:
+      - apiserver
+    networks:
+      - backend
+      - frontend
+
+  fileserver:
+    image: clearml/server:latest
+    container_name: clearml-fileserver
+    restart: unless-stopped
+    command: fileserver
+    environment:
+      CLEARML__fileserver__delete__allow_batch: "true"
+    ports:
+      - "8081:8081"
+    networks:
+      - backend
+      - frontend
+    volumes:
+      - clearml-data:/mnt/fileserver
+      - clearml-logs:/var/log/clearml
+
+  elasticsearch:
+    image: elasticsearch:8.17.0
+    container_name: clearml-elastic
+    restart: unless-stopped
+    environment:
+      discovery.type: "single-node"
+      xpack.security.enabled: "false"
+      bootstrap.memory_lock: "true"
+      cluster.routing.allocation.disk.watermark.low: 500mb
+      cluster.routing.allocation.disk.watermark.high: 500mb
+      cluster.routing.allocation.disk.watermark.flood_stage: 500mb
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    networks:
+      - backend
+    volumes:
+      - clearml-elastic-data:/usr/share/elasticsearch/data
+
+  mongo:
+    image: mongo:7.0.22
+    container_name: clearml-mongo
+    restart: unless-stopped
+    command: --setParameter internalQueryMaxBlockingSortMemoryUsageBytes=196100200
+    networks:
+      - backend
+    volumes:
+      - clearml-mongo-data:/data/db
+      - clearml-mongo-config:/data/configdb
+
+  redis:
+    image: redis:7.4.1
+    container_name: clearml-redis
+    restart: unless-stopped
+    networks:
+      - backend
+    volumes:
+      - clearml-redis-data:/data
+
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge
+
+volumes:
+  clearml-data:
+  clearml-logs:
+  clearml-elastic-data:
+  clearml-mongo-data:
+  clearml-mongo-config:
+  clearml-redis-data:
