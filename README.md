@@ -1,185 +1,177 @@
-# MLOps ML Service (Stage 1)
+# MLOps ML Service
 
-Учебный сервис для MLOps‑ДЗ. На этом этапе реализованы:
+Учебный сервис для MLOps‑ДЗ, реализующий полный цикл работы с ML-моделями: от загрузки и версионирования данных до трекинга экспериментов и инференса.
 
-- REST‑API для обучения, переобучения, инференса и управления моделями.
-- gRPC‑API с теми же возможностями и примером клиента.
-- Работа с реальными CSV‑датасетами (train/test по признакам и целевой колонке).
-- Интерактивный Streamlit‑дашборд (Status / Datasets / Training / Inference).
-- Логирование всех ключевых действий.
+## Основные возможности
+
+- **API**: REST (FastAPI) и gRPC интерфейсы.
+- **Data Management**: Загрузка CSV-датасетов с автоматическим версионированием через **DVC** и хранением в **MinIO** (S3).
+- **Experiment Tracking**: Полная интеграция с **ClearML** — каждая тренировка создает эксперимент с логами, гиперпараметрами и артефактами.
+- **Model Registry**: Обученные модели сохраняются в S3 (через ClearML) и доступны для инференса даже после перезапуска сервиса.
+- **Dashboard**: Интерактивный UI на Streamlit (Status / Datasets / Training / Inference).
+
+---
 
 ## Архитектура
 
-Основные компоненты:
+- `app/` — Backend (FastAPI + gRPC).
+  - `datasets/` — Логика работы с данными (DVC, реестр).
+  - `core/clearml_wrapper.py` — Интеграция с ClearML SDK.
+- `dashboard/` — Streamlit‑дашборд.
+- `data/` — Локальное хранилище датасетов (под управлением DVC, игнорируется Git).
+- `proto/ml_service.proto` — gRPC-контракт.
 
-- `app/` — backend (FastAPI + gRPC + работа с датасетами и моделями).
-- `dashboard/` — Streamlit‑дашборд поверх REST‑эндоинтов.
-- `proto/ml_service.proto` — описание gRPC‑контракта.
+---
 
-Реализация требований ДЗ (основная часть):
+## Предварительная настройка
 
-1. **Обучение моделей с разными гиперпараметрами, ≥2 классов**
+Для работы всех компонентов используется `docker-compose` (для MinIO и ClearML Server).
 
-   - REST: `POST /models/train`  
-     Параметры:
-     - `dataset_name`: имя загруженного датасета (файл в `data/`).
-     - `model_class`: `logreg` или `rf`.
-     - `hyperparams`: словарь гиперпараметров (перекрывает дефолты).
-     - `target_column`: имя целевой колонки в CSV.
-     - `feature_columns`: список колонок‑фич (или `null` для авто‑режима).
-
-   - В `MODEL_CLASSES` зарегистрированы как минимум:
-     - `logreg` → `sklearn.linear_model.LogisticRegression`
-     - `rf` → `sklearn.ensemble.RandomForestClassifier`
-
-2. **Список доступных классов моделей**
-
-   - REST: `GET /models/classes`
-   - gRPC: `ListModelClasses`
-
-3. **Предсказание конкретной модели и хранение нескольких моделей**
-
-   - `TRAINED_MODELS` хранит метаданные и объекты моделей в памяти:
-     - `model_id`, `class`, `dataset_name`, `params`,
-       `target_column`, `feature_columns`.
-   - REST:
-     - `GET /models/list` — список обученных моделей.
-     - `POST /models/predict` — инференс по выбранной модели.
-   - gRPC:
-     - `Predict` — инференс по `model_id`.
-
-4. **Переобучение и удаление моделей**
-
-   - REST:
-     - `POST /models/retrain` — переобучение выбранной модели на том же CSV,
-       создаётся новая модель с новым `model_id`.
-     - `DELETE /models/{model_id}` — удаление модели.
-   - gRPC:
-     - `RetrainModel` — RPC для переобучения.
-
-5. **Эндпоинт статуса сервиса**
-
-   - REST: `GET /health`
-   - Дашборд: вкладка **Status**, которая его дергает.
-
-6. **Список загруженных датасетов**
-
-   - REST:
-     - `GET /datasets` — список зарегистрированных датасетов.
-     - `POST /datasets/upload` — загрузка `csv`/`json`, сохранение в `data/`,
-       регистрация в in‑memory реестре.
-   - Дашборд: вкладка **Datasets** (список + загрузка).
-
-7. **Интерактивный дашборд**
-
-   - Streamlit‑приложение c вкладками:
-     - **Status** — проверка `/health`.
-     - **Datasets** — просмотр и загрузка датасетов.
-     - **Training** — выбор датасета и класса модели, задание:
-       - `target_column`,
-       - `feature_columns` (через строку с перечислением или auto),
-       - `hyperparams` (JSON),
-       затем:
-       - `Train new model` — `POST /models/train`,
-       - `Retrain selected model` — `POST /models/retrain`.
-     - **Inference** — выбор модели и запуск `POST /models/predict`
-       с произвольными строками признаков.
-
-## Работа с CSV‑датасетами
-
-Файлы сохраняются в директорию `data/` и регистрируются в in‑memory реестре.  
-При обучении:
-
-- CSV читается через `pandas.read_csv`.
-- По `target_column` формируется `y`.
-- По `feature_columns` (или автоматически) формируется `X`:
-  - если `feature_columns == null`, используются все **числовые**
-    колонки, кроме `target_column` и типичных индексов
-    (`id`, `index`, `Unnamed: 0`, и т.п.).
-- Так модель явно знает, где признаки, а где целевая переменная.
-
-При переобучении используются те же `dataset_name`, `target_column`
-и `feature_columns`, что были сохранены для исходной модели.
-
-## Запуск backend
-
-Установить зависимости (вариант):
+### 1. Установка зависимостей
 
 ```
 pip install -r requirements.txt
 ```
 
-Запуск FastAPI‑сервиса:
+### 2. Запуск инфраструктуры
+
+Поднимаем MinIO и ClearML Server одной командой (через Makefile):
 
 ```
-uvicorn app.main:app --reload
+make minio-up
+make clearml-up
 ```
 
-Основные URL:
+*Подождите несколько минут, пока сервисы (особенно ClearML) инициализируются.*
 
-- Swagger: http://localhost:8000/docs
-- OpenAPI: http://localhost:8000/openapi.json
-- Health: http://localhost:8000/health
+- **MinIO Console**: http://localhost:9001 (user: `minioadmin`, pass: `minioadmin`)
+- **ClearML Web UI**: http://localhost:8080
 
-## Запуск gRPC‑сервера и клиента
+### 3. Настройка DVC (один раз)
 
-Сборка gRPC‑стабов (при изменении `proto/ml_service.proto`):
-
-```
-python -m grpc_tools.protoc \
-  -I proto \
-  --python_out=app/grpc \
-  --grpc_python_out=app/grpc \
-  proto/ml_service.proto
-```
-
-Запуск gRPC‑сервера:
+Инициализируем DVC и настраиваем remote на локальный MinIO:
 
 ```
-python -m app.grpc.grpc_server
+make dvc-init
+```
+*(Если бакет `mlops-datasets` не создался автоматически, создайте его вручную через консоль MinIO).*
+
+### 4. Настройка ClearML Credentials (один раз)
+
+1. Зайдите в ClearML Web UI (http://localhost:8080).
+2. Перейдите в **Settings (шестеренка) -> Workspace -> Create new credentials**.
+3. Скопируйте `Access Key` и `Secret Key`.
+4. Откройте `Makefile` и вставьте ключи в переменные `CLEARML_API_ACCESS_KEY` и `CLEARML_API_SECRET_KEY`.
+
+---
+
+## Запуск сервисов
+
+### Запуск Backend (API)
+
+```
+make backend
+```
+Команда автоматически прокинет все необходимые переменные окружения для доступа к MinIO и ClearML.
+
+- Swagger UI: http://localhost:8000/docs
+- Health Check: http://localhost:8000/health
+
+### Запуск Dashboard
+
+В новом терминале:
+
+```
+make dashboard
+```
+Откроется по адресу: http://localhost:8501.
+
+---
+
+## gRPC Интерфейс
+
+В проекте уже сгенерированы необходимые файлы (`pb2` и `pb2_grpc`), поэтому можно сразу запускать сервер и клиент.
+
+### 1. Запуск gRPC сервера
+
+**Важно:** Запускать сервер нужно через `make`, чтобы передать ему ключи доступа к ClearML и MinIO.
+
+```
+make grpc-server
 ```
 
-Тестовый клиент:
+Сервер слушает порт `50051`.
+
+### 2. Запуск примера клиента
+
+Клиент демонстрирует полный цикл работы, используя **синтетические данные** (чтобы тест не зависел от загруженных файлов).
 
 ```
 python -m app.grpc.grpc_client_example
 ```
 
-Клиент демонстрирует:
+Сценарий клиента:
+1. Получение списка классов моделей.
+2. Обучение модели (режим `synthetic`).
+3. Инференс на синтетических данных.
+4. Переобучение модели.
 
-- получение списка классов моделей,
-- обучение модели,
-- инференс,
-- переобучение модели.
+---
 
-## Запуск дашборда
+## Сценарий использования (REST / Dashboard)
 
-В отдельном терминале (при запущенном FastAPI‑сервисе):
+### 1. Работа с данными (DVC + MinIO)
+- Перейдите на вкладку **Datasets** в дашборде.
+- Загрузите CSV-файл (например, `Iris.csv`).
+- **Что происходит:**
+  - Файл сохраняется локально.
+  - Выполняется `dvc add` и `dvc push`.
+  - Файл улетает в MinIO (бакет `mlops-datasets`).
+  - DVC-файл (`.dvc`) можно закоммитить в Git.
 
-```
-streamlit run dashboard/app.py
-```
+### 2. Обучение модели (ClearML)
+- Перейдите на вкладку **Training**.
+- Выберите датасет, алгоритм (`logreg` / `rf`) и укажите целевую колонку (`target_column`).
+- Нажмите **Train**.
+- **Что происходит:**
+  - Инициализируется **Task** в ClearML.
+  - Логируются гиперпараметры и метаданные датасета.
+  - Модель обучается и сохраняется как **Artifact** в MinIO.
+  - Задача завершается со статусом `Completed`.
+  - Эксперимент можно посмотреть в ClearML UI.
 
-По умолчанию откроется http://localhost:8501.
+### 3. Инференс (Model Registry)
+- Перейдите на вкладку **Inference**.
+- Выберите модель из списка (список подтягивается из ClearML, видны только успешно обученные модели).
+- Введите данные JSON (например, `[[5.1, 3.5, 1.4, 0.2]]`).
+- Нажмите **Predict**.
+- **Что происходит:**
+  - Сервис скачивает файл модели из MinIO (если нет в кэше).
+  - Выполняется предсказание.
 
-## Пример полного сценария проверки
+### 4. Переобучение (Retrain)
+- На вкладке **Training** выберите существующую модель.
+- Измените гиперпараметры.
+- Нажмите **Retrain**.
+- Создается **новый эксперимент** в ClearML, наследующий метаданные (датасет, колонки) от старой задачи.
 
-1. Запустить backend (`uvicorn`) и дашборд (Streamlit).
-2. На вкладке **Datasets**:
-   - загрузить CSV (например, `Iris.csv` или Breast Cancer),
-   - убедиться, что он появился в списке.
-3. На вкладке **Training**:
-   - выбрать датасет и класс модели (`logreg` или `rf`),
-   - указать `target_column` (например, `Species` или `diagnosis`),
-   - при необходимости оставить `feature_columns` пустым
-     (будет auto = все числовые колонки без индексов),
-   - при желании отредактировать `hyperparams` (JSON),
-   - нажать **Train new model** и получить `model_id`.
-4. На вкладке **Inference**:
-   - выбрать обученную модель,
-   - указать JSON‑массив строк признаков (например, одна строка
-     из CSV без target),
-   - нажать **Predict** и увидеть список предсказаний.
-5. Вернуться на **Training**, выбрать существующую модель в блоке
-   «retrain existing model», изменить гиперпараметры и нажать
-   **Retrain selected model** — появится новый `model_id`.
+---
+
+## Полезные команды
+
+- **Остановить инфраструктуру:**
+  ```
+  make minio-down
+  make clearml-down
+  ```
+
+- **Проверить статус DVC:**
+  ```
+  make dvc-status
+  ```
+
+- **Сгенерировать gRPC код (при изменении .proto):**
+  ```
+  python -m grpc_tools.protoc -I proto --python_out=app/grpc --grpc_python_out=app/grpc proto/ml_service.proto && \
+  sed -i '' 's/import ml_service_pb2/from . import ml_service_pb2/' app/grpc/ml_service_pb2_grpc.py
+  ```

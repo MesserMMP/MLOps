@@ -1,6 +1,8 @@
 import json
 import grpc
+import sys
 
+# Если импорт падает, убедись что файл сгенерирован корректно
 from app.grpc import ml_service_pb2 as pb2
 from app.grpc import ml_service_pb2_grpc as pb2_grpc
 
@@ -9,38 +11,57 @@ def main():
     channel = grpc.insecure_channel("localhost:50051")
     stub = pb2_grpc.MLServiceStub(channel)
 
-    # 1. Список классов моделей
-    resp_classes = stub.ListModelClasses(pb2.ListModelClassesRequest())
-    print("Available model classes:")
-    for cls in resp_classes.classes:
-        print(cls.name, cls.default_params_json)
+    print("--- 1. List Classes ---")
+    try:
+        resp_classes = stub.ListModelClasses(pb2.ListModelClassesRequest())
+        for cls in resp_classes.classes:
+            print(cls.name, cls.default_params_json)
+    except grpc.RpcError as e:
+        print(f"RPC Failed: {e.details()}")
+        return
 
-    # 2. Обучение
+    print("\n--- 2. Train Model (SYNTHETIC MODE) ---")
+    # Используем специальное имя для генерации данных
+    dataset_name = "synthetic"
+
     train_req = pb2.TrainModelRequest(
-        dataset_name="demo_dataset",
+        dataset_name=dataset_name,
         model_class="logreg",
         hyperparams_json=json.dumps({"max_iter": 200}),
+        target_column="",  # Для синтетики не важно
+        feature_columns_csv=""
     )
-    train_resp = stub.TrainModel(train_req)
-    print("Trained model:", train_resp.model_id, train_resp.model_class)
 
-    # 3. Инференс
-    data = [0.1, 0.2, 0.3, 0.4]
+    try:
+        train_resp = stub.TrainModel(train_req)
+        print(f"Trained model: ID={train_resp.model_id}, Class={train_resp.model_class}")
+    except grpc.RpcError as e:
+        print(f"Train Failed: {e.details()}")
+        return
+
+    print("\n--- 3. Predict ---")
+    data = [0.1, 0.2, 0.3, 0.4]  # Пример синтетических признаков
     pred_req = pb2.PredictRequest(
         model_id=train_resp.model_id,
         data=data,
         n_features=4,
     )
-    pred_resp = stub.Predict(pred_req)
-    print("Predictions:", pred_resp.predictions)
+    try:
+        pred_resp = stub.Predict(pred_req)
+        print(f"Predictions: {pred_resp.predictions}")
+    except grpc.RpcError as e:
+        print(f"Predict Failed: {e.details()}")
 
-    # 4. Переобучение
+    print("\n--- 4. Retrain ---")
     retrain_req = pb2.RetrainModelRequest(
         model_id=train_resp.model_id,
         hyperparams_json=json.dumps({"max_iter": 300}),
     )
-    retrain_resp = stub.RetrainModel(retrain_req)
-    print("Retrained model:", retrain_resp.model_id, retrain_resp.model_class)
+    try:
+        retrain_resp = stub.RetrainModel(retrain_req)
+        print(f"Retrained model: ID={retrain_resp.model_id}")
+    except grpc.RpcError as e:
+        print(f"Retrain Failed: {e.details()}")
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from app.grpc import ml_service_pb2 as ml__service__pb2
+from . import ml_service_pb2 as ml__service__pb2
 
 GRPC_GENERATED_VERSION = '1.67.1'
 GRPC_VERSION = grpc.__version__

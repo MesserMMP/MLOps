@@ -24,6 +24,9 @@ message TrainModelRequest {
   string dataset_name = 1;
   string model_class = 2;
   string hyperparams_json = 3;
+  // Новые обязательные поля для работы с CSV
+  string target_column = 4;
+  string feature_columns_csv = 5; // Список колонок через запятую, например "col1,col2"
 }
 
 message RetrainModelRequest {
