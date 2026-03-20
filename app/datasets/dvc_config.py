@@ -3,7 +3,7 @@ from pathlib import Path
 
 from dvc.repo import Repo
 
-from app.core.logging_config import setup_logging
+from app.utils.logging_config import setup_logging
 
 logger = setup_logging()
 

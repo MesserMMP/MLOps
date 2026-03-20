@@ -7,6 +7,9 @@ service MLService {
   rpc TrainModel (TrainModelRequest) returns (TrainModelResponse);
   rpc RetrainModel (RetrainModelRequest) returns (TrainModelResponse);
   rpc Predict (PredictRequest) returns (PredictResponse);
+  rpc ListDatasets (ListDatasetsRequest) returns (ListDatasetsResponse);
+  rpc UploadDataset (UploadDatasetRequest) returns (UploadDatasetResponse);
+  rpc DeleteDataset (DeleteDatasetRequest) returns (DeleteDatasetResponse);
 }
 
 message ListModelClassesRequest {}
@@ -24,9 +27,8 @@ message TrainModelRequest {
   string dataset_name = 1;
   string model_class = 2;
   string hyperparams_json = 3;
-  // Новые обязательные поля для работы с CSV
   string target_column = 4;
-  string feature_columns_csv = 5; // Список колонок через запятую, например "col1,col2"
+  string feature_columns_csv = 5;
 }
 
 message RetrainModelRequest {
@@ -47,4 +49,36 @@ message PredictRequest {
 
 message PredictResponse {
   repeated double predictions = 1;
+}
+
+// ── Dataset messages ────────────────────────────────────────────────────────
+
+message ListDatasetsRequest {}
+
+message DatasetInfo {
+  string name = 1;
+  string path = 2;
+  string description = 3;
+}
+
+message ListDatasetsResponse {
+  repeated DatasetInfo datasets = 1;
+}
+
+message UploadDatasetRequest {
+  string filename = 1;
+  bytes  content  = 2;
+}
+
+message UploadDatasetResponse {
+  string name = 1;
+  string path = 2;
+}
+
+message DeleteDatasetRequest {
+  string name = 1;
+}
+
+message DeleteDatasetResponse {
+  string detail = 1;
 }
