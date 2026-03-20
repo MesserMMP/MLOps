@@ -127,7 +127,7 @@ propcache==0.4.1
 protobuf==5.29.6
 psutil==7.2.2
 ptyprocess==0.7.0
-pyOpenSSL==23.2.0
+pyOpenSSL==26.0.0
 pyarrow==21.0.0
 pyasn1-modules==0.2.8
 pyasn1==0.6.3
@@ -200,7 +200,7 @@ watchdog==6.0.0
 watchfiles==1.1.1
 wcwidth==0.6.0
 websockets==16.0
-wheel==0.42.0
+wheel==0.46.2
 wrapt==2.1.2
 yarl==1.23.0
 zc.lockfile==4.0
