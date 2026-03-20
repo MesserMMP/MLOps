@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlops-grpc
+  labels:
+    app: mlops-grpc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlops-grpc
+  template:
+    metadata:
+      labels:
+        app: mlops-grpc
+    spec:
+      containers:
+        - name: grpc
+          image: mlops-backend:latest
+          imagePullPolicy: Never
+          command: ["python", "-m", "app.grpc.grpc_server"]
+          ports:
+            - containerPort: 50051
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: mlops-secrets
+                  key: minio-access-key
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlops-secrets
+                  key: minio-secret-key
+            - name: AWS_ENDPOINT_URL
+              value: "http://mlops-minio:9000"
+            - name: CLEARML_WEB_HOST
+              value: "http://host.minikube.internal:8080"
+            - name: CLEARML_API_HOST
+              value: "http://host.minikube.internal:8008"
+            - name: CLEARML_FILES_HOST
+              value: "http://host.minikube.internal:8081"
+            - name: CLEARML_API_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlops-secrets
+                  key: clearml-access-key
+            - name: CLEARML_API_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlops-secrets
+                  key: clearml-secret-key
+          volumeMounts:
+            - name: data-volume
+              mountPath: /app/data
+      volumes:
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: mlops-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlops-grpc
+spec:
+  selector:
+    app: mlops-grpc
+  ports:
+    - protocol: TCP
+      port: 50051
+      targetPort: 50051
+  type: NodePort

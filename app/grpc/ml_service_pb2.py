@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10ml_service.proto\x12\tmlservice\"\x19\n\x17ListModelClassesRequest\";\n\x0eModelClassInfo\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x1b\n\x13\x64\x65\x66\x61ult_params_json\x18\x02 \x01(\t\"F\n\x18ListModelClassesResponse\x12*\n\x07\x63lasses\x18\x01 \x03(\x0b\x32\x19.mlservice.ModelClassInfo\"\x8c\x01\n\x11TrainModelRequest\x12\x14\n\x0c\x64\x61taset_name\x18\x01 \x01(\t\x12\x13\n\x0bmodel_class\x18\x02 \x01(\t\x12\x18\n\x10hyperparams_json\x18\x03 \x01(\t\x12\x15\n\rtarget_column\x18\x04 \x01(\t\x12\x1b\n\x13\x66\x65\x61ture_columns_csv\x18\x05 \x01(\t\"A\n\x13RetrainModelRequest\x12\x10\n\x08model_id\x18\x01 \x01(\t\x12\x18\n\x10hyperparams_json\x18\x02 \x01(\t\";\n\x12TrainModelResponse\x12\x10\n\x08model_id\x18\x01 \x01(\t\x12\x13\n\x0bmodel_class\x18\x02 \x01(\t\"D\n\x0ePredictRequest\x12\x10\n\x08model_id\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x03(\x01\x12\x12\n\nn_features\x18\x03 \x01(\x05\"&\n\x0fPredictResponse\x12\x13\n\x0bpredictions\x18\x01 \x03(\x01\x32\xc4\x02\n\tMLService\x12[\n\x10ListModelClasses\x12\".mlservice.ListModelClassesRequest\x1a#.mlservice.ListModelClassesResponse\x12I\n\nTrainModel\x12\x1c.mlservice.TrainModelRequest\x1a\x1d.mlservice.TrainModelResponse\x12M\n\x0cRetrainModel\x12\x1e.mlservice.RetrainModelRequest\x1a\x1d.mlservice.TrainModelResponse\x12@\n\x07Predict\x12\x19.mlservice.PredictRequest\x1a\x1a.mlservice.PredictResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10ml_service.proto\x12\tmlservice\"\x19\n\x17ListModelClassesRequest\";\n\x0eModelClassInfo\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x1b\n\x13\x64\x65\x66\x61ult_params_json\x18\x02 \x01(\t\"F\n\x18ListModelClassesResponse\x12*\n\x07\x63lasses\x18\x01 \x03(\x0b\x32\x19.mlservice.ModelClassInfo\"\x8c\x01\n\x11TrainModelRequest\x12\x14\n\x0c\x64\x61taset_name\x18\x01 \x01(\t\x12\x13\n\x0bmodel_class\x18\x02 \x01(\t\x12\x18\n\x10hyperparams_json\x18\x03 \x01(\t\x12\x15\n\rtarget_column\x18\x04 \x01(\t\x12\x1b\n\x13\x66\x65\x61ture_columns_csv\x18\x05 \x01(\t\"A\n\x13RetrainModelRequest\x12\x10\n\x08model_id\x18\x01 \x01(\t\x12\x18\n\x10hyperparams_json\x18\x02 \x01(\t\";\n\x12TrainModelResponse\x12\x10\n\x08model_id\x18\x01 \x01(\t\x12\x13\n\x0bmodel_class\x18\x02 \x01(\t\"D\n\x0ePredictRequest\x12\x10\n\x08model_id\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x03(\x01\x12\x12\n\nn_features\x18\x03 \x01(\x05\"&\n\x0fPredictResponse\x12\x13\n\x0bpredictions\x18\x01 \x03(\x01\"\x15\n\x13ListDatasetsRequest\">\n\x0b\x44\x61tasetInfo\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04path\x18\x02 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x03 \x01(\t\"@\n\x14ListDatasetsResponse\x12(\n\x08\x64\x61tasets\x18\x01 \x03(\x0b\x32\x16.mlservice.DatasetInfo\"9\n\x14UploadDatasetRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\x0c\"3\n\x15UploadDatasetResponse\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04path\x18\x02 \x01(\t\"$\n\x14\x44\x65leteDatasetRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"\'\n\x15\x44\x65leteDatasetResponse\x12\x0e\n\x06\x64\x65tail\x18\x01 \x01(\t2\xbd\x04\n\tMLService\x12[\n\x10ListModelClasses\x12\".mlservice.ListModelClassesRequest\x1a#.mlservice.ListModelClassesResponse\x12I\n\nTrainModel\x12\x1c.mlservice.TrainModelRequest\x1a\x1d.mlservice.TrainModelResponse\x12M\n\x0cRetrainModel\x12\x1e.mlservice.RetrainModelRequest\x1a\x1d.mlservice.TrainModelResponse\x12@\n\x07Predict\x12\x19.mlservice.PredictRequest\x1a\x1a.mlservice.PredictResponse\x12O\n\x0cListDatasets\x12\x1e.mlservice.ListDatasetsRequest\x1a\x1f.mlservice.ListDatasetsResponse\x12R\n\rUploadDataset\x12\x1f.mlservice.UploadDatasetRequest\x1a .mlservice.UploadDatasetResponse\x12R\n\rDeleteDataset\x12\x1f.mlservice.DeleteDatasetRequest\x1a .mlservice.DeleteDatasetResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -47,6 +47,20 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_PREDICTREQUEST']._serialized_end=530
   _globals['_PREDICTRESPONSE']._serialized_start=532
   _globals['_PREDICTRESPONSE']._serialized_end=570
-  _globals['_MLSERVICE']._serialized_start=573
-  _globals['_MLSERVICE']._serialized_end=897
+  _globals['_LISTDATASETSREQUEST']._serialized_start=572
+  _globals['_LISTDATASETSREQUEST']._serialized_end=593
+  _globals['_DATASETINFO']._serialized_start=595
+  _globals['_DATASETINFO']._serialized_end=657
+  _globals['_LISTDATASETSRESPONSE']._serialized_start=659
+  _globals['_LISTDATASETSRESPONSE']._serialized_end=723
+  _globals['_UPLOADDATASETREQUEST']._serialized_start=725
+  _globals['_UPLOADDATASETREQUEST']._serialized_end=782
+  _globals['_UPLOADDATASETRESPONSE']._serialized_start=784
+  _globals['_UPLOADDATASETRESPONSE']._serialized_end=835
+  _globals['_DELETEDATASETREQUEST']._serialized_start=837
+  _globals['_DELETEDATASETREQUEST']._serialized_end=873
+  _globals['_DELETEDATASETRESPONSE']._serialized_start=875
+  _globals['_DELETEDATASETRESPONSE']._serialized_end=914
+  _globals['_MLSERVICE']._serialized_start=917
+  _globals['_MLSERVICE']._serialized_end=1490
 # @@protoc_insertion_point(module_scope)

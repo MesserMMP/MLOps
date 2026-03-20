@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from . import ml_service_pb2 as ml__service__pb2
+from app.grpc import ml_service_pb2 as ml__service__pb2
 
 GRPC_GENERATED_VERSION = '1.67.1'
 GRPC_VERSION = grpc.__version__
@@ -54,6 +54,21 @@ class MLServiceStub(object):
                 request_serializer=ml__service__pb2.PredictRequest.SerializeToString,
                 response_deserializer=ml__service__pb2.PredictResponse.FromString,
                 _registered_method=True)
+        self.ListDatasets = channel.unary_unary(
+                '/mlservice.MLService/ListDatasets',
+                request_serializer=ml__service__pb2.ListDatasetsRequest.SerializeToString,
+                response_deserializer=ml__service__pb2.ListDatasetsResponse.FromString,
+                _registered_method=True)
+        self.UploadDataset = channel.unary_unary(
+                '/mlservice.MLService/UploadDataset',
+                request_serializer=ml__service__pb2.UploadDatasetRequest.SerializeToString,
+                response_deserializer=ml__service__pb2.UploadDatasetResponse.FromString,
+                _registered_method=True)
+        self.DeleteDataset = channel.unary_unary(
+                '/mlservice.MLService/DeleteDataset',
+                request_serializer=ml__service__pb2.DeleteDatasetRequest.SerializeToString,
+                response_deserializer=ml__service__pb2.DeleteDatasetResponse.FromString,
+                _registered_method=True)
 
 
 class MLServiceServicer(object):
@@ -83,6 +98,24 @@ class MLServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ListDatasets(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UploadDataset(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeleteDataset(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_MLServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -105,6 +138,21 @@ def add_MLServiceServicer_to_server(servicer, server):
                     servicer.Predict,
                     request_deserializer=ml__service__pb2.PredictRequest.FromString,
                     response_serializer=ml__service__pb2.PredictResponse.SerializeToString,
+            ),
+            'ListDatasets': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListDatasets,
+                    request_deserializer=ml__service__pb2.ListDatasetsRequest.FromString,
+                    response_serializer=ml__service__pb2.ListDatasetsResponse.SerializeToString,
+            ),
+            'UploadDataset': grpc.unary_unary_rpc_method_handler(
+                    servicer.UploadDataset,
+                    request_deserializer=ml__service__pb2.UploadDatasetRequest.FromString,
+                    response_serializer=ml__service__pb2.UploadDatasetResponse.SerializeToString,
+            ),
+            'DeleteDataset': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteDataset,
+                    request_deserializer=ml__service__pb2.DeleteDatasetRequest.FromString,
+                    response_serializer=ml__service__pb2.DeleteDatasetResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -215,6 +263,87 @@ class MLService(object):
             '/mlservice.MLService/Predict',
             ml__service__pb2.PredictRequest.SerializeToString,
             ml__service__pb2.PredictResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ListDatasets(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mlservice.MLService/ListDatasets',
+            ml__service__pb2.ListDatasetsRequest.SerializeToString,
+            ml__service__pb2.ListDatasetsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def UploadDataset(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mlservice.MLService/UploadDataset',
+            ml__service__pb2.UploadDatasetRequest.SerializeToString,
+            ml__service__pb2.UploadDatasetResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DeleteDataset(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mlservice.MLService/DeleteDataset',
+            ml__service__pb2.DeleteDatasetRequest.SerializeToString,
+            ml__service__pb2.DeleteDatasetResponse.FromString,
             options,
             channel_credentials,
             insecure,

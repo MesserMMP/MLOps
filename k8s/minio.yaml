@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlops-minio
+  labels:
+    app: mlops-minio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlops-minio
+  template:
+    metadata:
+      labels:
+        app: mlops-minio
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio:RELEASE.2024-05-10T01-41-38Z
+          args: ["server", "/data", "--console-address", ":9001"]
+          ports:
+            - containerPort: 9000
+            - containerPort: 9001
+          env:
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlops-secrets
+                  key: minio-access-key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlops-secrets
+                  key: minio-secret-key
+          volumeMounts:
+            - name: minio-data
+              mountPath: /data
+      volumes:
+        - name: minio-data
+          persistentVolumeClaim:
+            claimName: mlops-minio-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlops-minio
+spec:
+  selector:
+    app: mlops-minio
+  ports:
+    - name: api
+      port: 9000
+      targetPort: 9000
+    - name: console
+      port: 9001
+      targetPort: 9001
+  type: NodePort

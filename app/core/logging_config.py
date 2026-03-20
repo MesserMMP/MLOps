@@ -1,10 +1,2 @@
-import logging
-
-
-def setup_logging() -> logging.Logger:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-    )
-    logger = logging.getLogger("ml-service")
-    return logger
+"""Backward-compatibility shim.  Logic has moved to :mod:`app.utils.logging_config`."""
+from app.utils.logging_config import setup_logging  # noqa: F401

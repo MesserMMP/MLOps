@@ -1,0 +1,87 @@
+version: "3.8"
+
+# Full-stack compose: app + dashboard + MinIO.
+# ClearML is managed separately via docker-compose.clearml.yml.
+#
+# Usage:
+#   docker compose up --build          # start all services
+#   docker compose up --build backend  # start only the API
+
+services:
+
+  # ── MinIO (S3-compatible object storage) ───────────────────────────────────
+  minio:
+    image: minio/minio:RELEASE.2024-05-10T01-41-38Z
+    container_name: mlops-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:-minioadmin}"
+      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:-minioadmin}"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── FastAPI backend ─────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mlops-backend
+    ports:
+      - "8000:8000"
+    environment:
+      AWS_ACCESS_KEY_ID: "${MINIO_ACCESS_KEY:-minioadmin}"
+      AWS_SECRET_ACCESS_KEY: "${MINIO_SECRET_KEY:-minioadmin}"
+      AWS_ENDPOINT_URL: "http://minio:9000"
+      CLEARML_WEB_HOST: "${CLEARML_WEB_HOST:-http://localhost:8080}"
+      CLEARML_API_HOST: "${CLEARML_API_HOST:-http://localhost:8008}"
+      CLEARML_FILES_HOST: "${CLEARML_FILES_HOST:-http://localhost:8081}"
+      CLEARML_API_ACCESS_KEY: "${CLEARML_API_ACCESS_KEY:-}"
+      CLEARML_API_SECRET_KEY: "${CLEARML_API_SECRET_KEY:-}"
+    depends_on:
+      - minio
+    volumes:
+      - ./data:/app/data
+
+  # ── gRPC server ─────────────────────────────────────────────────────────────
+  grpc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mlops-grpc
+    command: ["python", "-m", "app.grpc.grpc_server"]
+    ports:
+      - "50051:50051"
+    environment:
+      AWS_ACCESS_KEY_ID: "${MINIO_ACCESS_KEY:-minioadmin}"
+      AWS_SECRET_ACCESS_KEY: "${MINIO_SECRET_KEY:-minioadmin}"
+      AWS_ENDPOINT_URL: "http://minio:9000"
+      CLEARML_WEB_HOST: "${CLEARML_WEB_HOST:-http://localhost:8080}"
+      CLEARML_API_HOST: "${CLEARML_API_HOST:-http://localhost:8008}"
+      CLEARML_FILES_HOST: "${CLEARML_FILES_HOST:-http://localhost:8081}"
+      CLEARML_API_ACCESS_KEY: "${CLEARML_API_ACCESS_KEY:-}"
+      CLEARML_API_SECRET_KEY: "${CLEARML_API_SECRET_KEY:-}"
+    depends_on:
+      - minio
+    volumes:
+      - ./data:/app/data
+
+  # ── Streamlit dashboard ──────────────────────────────────────────────────────
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: mlops-dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      BACKEND_URL: "http://backend:8000"
+    depends_on:
+      - backend

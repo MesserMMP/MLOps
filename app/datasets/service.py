@@ -5,8 +5,8 @@ from typing import Literal, List
 import pandas as pd
 from fastapi import HTTPException, UploadFile
 
-from app.core.logging_config import setup_logging
-from app.datasets.registry import register_dataset, get_dataset, get_datasets_as_dicts
+from app.utils.logging_config import setup_logging
+from app.datasets.registry import DatasetRegistry
 from app.datasets.dvc_config import get_dvc_repo, DATA_DIR, ensure_data_dir
 
 logger = setup_logging()
@@ -19,10 +19,9 @@ def save_uploaded_dataset(
     dataset_name: str | None = None,
     format_hint: Literal["csv", "json", "auto"] = "auto",
 ) -> str:
-    """
-    Сохраняет загруженный файл (csv/json) на диск, регистрирует в локальном
-    реестре и добавляет в DVC (dvc add + dvc push).
-    Возвращает имя датасета (имя файла).
+    """Save an uploaded CSV/JSON file to disk, register it and track with DVC.
+
+    Returns the canonical dataset name (sanitised filename).
     """
     if dataset_name is None:
         dataset_name = file.filename
@@ -43,8 +42,7 @@ def save_uploaded_dataset(
         else:
             format_hint = "csv"
 
-    # Локальный реестр (для быстрого доступа в рантайме)
-    register_dataset(
+    DatasetRegistry.register(
         name=safe_name,
         path=str(target_path),
         description=f"uploaded {format_hint} file (DVC-tracked)",
@@ -60,7 +58,6 @@ def save_uploaded_dataset(
         repo.push()
     except Exception as e:
         logger.exception("Failed to run DVC for dataset %s: %s", safe_name, e)
-        # не валим запрос, но помечаем в логах
 
     return safe_name
 
@@ -70,14 +67,19 @@ def load_xy_from_csv(
     target_column: str,
     feature_columns: List[str] | None,
 ):
-    """
-    Загружает CSV по имени датасета и разбивает на X и y.
+    """Load a CSV dataset and split it into feature matrix X and target vector y.
 
-    Если feature_columns == None:
-      - берутся все числовые колонки, кроме target,
-      - дополнительно выкидываются типичные индексы: id, index, Unnamed: 0 и т.п.
+    Parameters
+    ----------
+    dataset_name:
+        Name as stored in :class:`DatasetRegistry`.
+    target_column:
+        Column to use as the prediction target.
+    feature_columns:
+        Explicit list of feature columns.  When *None* all numeric columns
+        (excluding obvious index columns) are used.
     """
-    meta = get_dataset(dataset_name)
+    meta = DatasetRegistry.get(dataset_name)
     if meta is None:
         logger.error("Dataset not found: %s", dataset_name)
         raise HTTPException(status_code=404, detail="Dataset not found")

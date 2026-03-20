@@ -1,4 +1,7 @@
-.PHONY: minio-up minio-down backend dashboard dvc-status dvc-init clearml-up clearml-down
+.PHONY: minio-up minio-down backend grpc-server dashboard \
+        dvc-status dvc-init clearml-up clearml-down \
+        docker-build docker-up docker-down \
+        k8s-deploy k8s-delete
 
 # MinIO (s3 backend)
 minio-up:
@@ -26,7 +29,43 @@ clearml-up:
 clearml-down:
 	docker compose -f docker-compose.clearml.yml down
 
-# --- App ---
+# --- Docker (all services) ---
+
+# Build all service images
+docker-build:
+	docker build -t mlops-backend:latest -f Dockerfile .
+	docker build -t mlops-dashboard:latest -f Dockerfile.dashboard .
+
+# Start all services (app + dashboard + minio) via docker-compose.yml
+docker-up:
+	docker compose up --build -d
+
+docker-down:
+	docker compose down
+
+# --- Minikube / Kubernetes ---
+# Prerequisites:
+#   minikube start --driver=docker
+#   eval $(minikube docker-env)   # so kubectl can pull local images
+#   make docker-build              # build images into minikube's Docker daemon
+
+k8s-deploy:
+	kubectl apply -f k8s/pvc.yaml
+	kubectl apply -f k8s/secrets.yaml
+	kubectl apply -f k8s/minio.yaml
+	kubectl apply -f k8s/backend.yaml
+	kubectl apply -f k8s/grpc.yaml
+	kubectl apply -f k8s/dashboard.yaml
+
+k8s-delete:
+	kubectl delete -f k8s/dashboard.yaml --ignore-not-found
+	kubectl delete -f k8s/grpc.yaml --ignore-not-found
+	kubectl delete -f k8s/backend.yaml --ignore-not-found
+	kubectl delete -f k8s/minio.yaml --ignore-not-found
+	kubectl delete -f k8s/secrets.yaml --ignore-not-found
+	kubectl delete -f k8s/pvc.yaml --ignore-not-found
+
+# --- App (local dev, no Docker) ---
 
 # Вставь сюда ключи из http://localhost:8080 -> Profile -> Settings -> Workspace
 CLEARML_API_ACCESS_KEY = "YOUR_API_ACCESS_KEY"
